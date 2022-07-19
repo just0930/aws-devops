@@ -1,0 +1,74 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: >-
+  AWS CloudFormation template to create NIST-800-53 Audit Manager assessment. 
+Parameters:
+  AuditOwnerArn:
+    Description: ARN for IAM Audit Owner in your account.
+    Type: String
+    AllowedValues:
+      - arn of user
+    MinLength: '1'
+    MaxLength: '255'
+
+  AccountId:
+    Description: Account to deploy Assessment
+    Type: Number
+    Default: Account number
+
+Resources:
+  S3Bucket:
+    DeletionPolicy: Retain
+    Type: 'AWS::S3::Bucket'
+    Description: Creating Amazon S3 bucket for the Audit Manager Assessment Destination from CloudFormation
+    Properties:
+      BucketName: S3Bucket
+      AccessControl: Private
+      PublicAccessBlockConfiguration:
+        BlockPublicAcls: true
+        BlockPublicPolicy: true
+        IgnorePublicAcls: true
+        RestrictPublicBuckets: true
+
+  S3BucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action: ['s3:*']
+            Effect: Allow
+            Resource:
+              - !Sub arn:aws:s3:::${S3Bucket}
+              - !Sub arn:aws:s3:::${S3Bucket}/*
+            Principal:
+              Service: 
+                - auditmanager.amazonaws.com
+
+  AuditManagerAssessment:
+    Type: AWS::AuditManager::Assessment
+    Properties: 
+      AssessmentReportsDestination: 
+        Destination: !Sub 's3://${S3Bucket}'
+        DestinationType: 'S3'
+      Description: NIST-800-53-Assessment
+      FrameworkId: 49a50651-06a4-357b-988a-6d31795780d7
+      Name: NIST-800-53-Rev-5-Low-Moderate-High
+      Roles: 
+        - 'RoleArn': !Sub 'arn:aws:iam::${AccountId}:role/aws-service-role/auditmanager.amazonaws.com/AWSServiceRoleForAuditManager'
+          'RoleType': 'PROCESS_OWNER'
+        
+      Scope: 
+        AwsAccounts:
+          - 'Id': !Ref 'AWS::AccountId'
+        AwsServices:
+          - 'ServiceName': 's3'
+          - 'ServiceName': 'iam'
+          - 'ServiceName': 'cloudtrail'
+          - 'ServiceName': 'cloudwatch'
+          - 'ServiceName': 'ec2'
+          - 'ServiceName': 'config'
+          - 'ServiceName': 'securityhub'
+        
+      
+      
