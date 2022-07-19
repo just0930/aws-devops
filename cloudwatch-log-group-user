@@ -1,0 +1,35 @@
+AWSTemplateFormatVersion: 2010-09-09
+Description: This template creates an IAM user with permission to access Cloudwatch logs
+
+Parameters:
+  AccountId:
+    Description: Account ID of account in which stack is being created
+    Type: Number
+  Region:
+    Description: Region to deploy resources to
+    Default: String
+
+Resources:
+  CloudWatchLoggroupUser:
+    Type: AWS::IAM::User
+    Properties:
+      Policies:
+        - PolicyName: CloudWatchLogsReadOnlyAccess
+          PolicyDocument:
+            Version: '2012-10-17'
+            Statement:
+              - Effect: Allow
+                Action:
+                  - logs:Describe*
+                  - logs:Get*
+                  - logs:List*
+                  - logs:StartQuery
+                  - logs:StopQuery
+                  - logs:TestMetricFilter
+                  - logs:FilterLogEvents
+                Resource: !Sub "arn:aws:logs:{AWS::Region}:{AWS::AccountId}:log-group:CloudTrail/DefaultLogGroup:*"
+
+  CWUserAccessKey:
+    Type: AWS::IAM::AccessKey
+    Properties:
+      UserName: !Ref CloudWatchLoggroupUser
